@@ -7,7 +7,7 @@ sigma = 1.0
 density = 1.0
 dc = np.array([i+1 for i in xrange(50)])
 sz = np.array([100 for i in xrange(50)])
-acml = aprxCML(0.0001, sigma, density, data, dc, sz, 1, 30)
+acml = ApxCML(0.0001, sigma, density, data, dc, sz, 1, 30)
 data = acml.gen_data(0.3,100,sigma, density)
 acml.set_data(data,dc,100)
 print acml.data
