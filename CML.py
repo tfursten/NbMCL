@@ -60,6 +60,27 @@ class aprxCML(CML):
                 self.split = i
                 break
         return -self.likelihood()
+
+    def landscape(self,res=0.1,sig_lower=0.1,sig_upper=4.0,den_lower=0.1,den_upper=6.0,file_name=None):
+    	#run after maxLike
+    	sig = np.arange(sig_lower,sig_upper,res)
+    	den = np.arange(den_lower,den_upper,res)
+    	X,Y = np.meshgrid(sig,den)
+    	Z = np.array([[-log(self.update(np.array([i,j]))) for i in sig] for j in den])
+    	plt.rcParams['xtick.direction'] = 'out'
+    	plt.rcParams['ytick.direction'] = 'out'
+    	plt.figure(figsize=(10,10))
+    	CS = plt.contour(X,Y,Z)
+    	plt.clabel(CS, inline=1, fontsize=10)
+    	plt.title('Likelihood Landscape of $\sigma$ vs Density')
+    	plt.xlabel('$\sigma$')
+    	plt.ylabel('density')
+    	plt.plot(self.ml[0],self.ml[1],"*k",markersize=20)
+    	plt.show()
+    	if file_name != None:
+    		plt.savefig(file_name,format='pdf')
+
+
     
     
     def maxLike(self, startSig, startDen, max_iter=10000, tol=0.00001, verbose=False):
@@ -67,7 +88,6 @@ class aprxCML(CML):
         bnds = ((2**(-52),None),(2**(-52),None))
         x = minimize(self.update,start,options={'maxiter':max_iter,'disp':verbose},tol=tol,bounds=bnds,method='TNC')
         self.ml = x.x
-        print self.ml
         return x
     
     def bootstrap_helper(self,stat,samples,d_class,sz,sigma,density,verbose):
@@ -177,9 +197,7 @@ class aprxCML(CML):
             self.ndc = len(self.dist)
             self.fhat = np.sum(self.data)/float(self.tsz)
         else:
-            raise Exception("Error: Data and Distance class arrays are not equal length")
-    
-
+            raise Exception("ERROR: data and distance class arrays are not equal length")
 
     def sortData(self,data,dc,sz):
     	z = zip(dc,data,sz)
@@ -240,27 +258,55 @@ class fullCML(CML):
         for i in xrange(self.ndc):
             r = (phi[i] - phi_bar)/(1.0 - phi_bar)
             pIBD = self.fhat + (1-self.fhat) * r
+            if pIBD<=0:
+                print "WARNING: Prabability of IBD has fallen below zero for distance class",self.dist[i],"."
+                print "This marginal likelihood will not be included in composite likelihood."
+                continue
             cml += self.data[i]*log(pIBD)+(self.sz[i]-self.data[i])*log(1-pIBD)
         return cml
+
 
     def update(self, ar):
         self.s = ar[0]
         self.de = ar[1]
         self.ss = self.s*self.s
+        if(ar[0]<=0 or ar[1]<=0):
+            print "negative arguments"
+            return sys.maxint
         return -self.likelihood()
+
     
     def maxLike(self, startSig, startDen, max_iter=10000, tol=0.00001, verbose=False):
         start = np.array([startSig,startDen])
         bnds = ((2**(-52),None),(2**(-52),None))
         x = minimize(self.update,start,options={'maxiter':max_iter,'disp':verbose},tol=tol,bounds=bnds,method='TNC')
-        self.ml = x
+        self.ml = x.x
         return x
-    
-    def bootstrap_CI(self, num_samples, alpha, sigma, density):
+
+
+
+    def bootstrap_helper(self,stat,samples,d_class,sz,sigma,density,verbose):
+        fail = 0
+        for i,(r,d,s) in enumerate(zip(samples,d_class,sz)):
+            #approximate model requires the distance classes to be sorted
+            #to find the appropriate cutoff point
+            self.data = r
+            self.dist = d
+            self.sz = s
+            x = self.maxLike(sigma,density)
+            if x.success == False:
+                fail += 1
+                continue
+            stat[np.where(stat==0)[0][0]] = self.get_nb()
+        return stat,fail
+        
+
+    def bootstrap_CI(self, num_samples, alpha, sigma, density, verbose=False):
         #remember original data
         org_data = self.data
         org_dc = self.dist
-        self.maxLike(sigma,density)
+        org_sz = self.sz
+        self.maxLike(sigma,density,verbose=verbose)
         org_nb = self.get_nb()
         #make indexes for sampling with replacement 
         #carry over the distance classes as well
@@ -268,22 +314,38 @@ class fullCML(CML):
         idx = np.random.randint(0,n,(num_samples,n))
         samples = org_data[idx]
         d_class = org_dc[idx]
+        sz = org_sz[idx]
         stat = np.zeros(num_samples)
-        for i,(r,d) in enumerate(zip(samples,d_class)):
-            self.data = r
-            self.dist = d
-            self.maxLike(sigma,density)
-            stat[i] = self.get_nb()
+        stat,fail = self.bootstrap_helper(stat,samples,d_class,sz,sigma,density,verbose)
+        #Redo those that failed to converge
+        while fail > 0:
+            idx = np.random.randint(0,n,(fail,n))
+            samples = org_data[idx]
+            d_class = org_dc[idx]
+            sz = org_sz[idx]
+            stat,fail = self.bootstrap_helper(stat,samples,d_class,sz,sigma,density,verbose)
         stat.sort()
         #return data to original values
         self.data = org_data
         self.dist = org_dc
         return [stat[int((alpha/2.0)*num_samples)],org_nb,stat[int((1-alpha/2.0)*num_samples)],stat]
     
-    def changeData(self, newData):
-        self.data = newData
-        #x,y,z = np.arr
-        self.fhat = np.sum(self.data)/float(np.sum(self.sz))
+    
+
+    def changeData(self, newData, dc, sz):
+        if type(sz) is int:
+        	sz = [sz for i in xrange(len(newData))]
+        if len(newData)==len(dc) and len(dc) == len(sz):
+        	self.data = newData
+        	self.dist = dc
+        	self.sz = sz
+        	self.dist2 = self.dist**2
+        	self.tsz = np.sum(self.sz)
+        	self.ndc = len(self.dist)
+        	self.fhat = np.sum(self.data)/float(self.tsz)
+        else:
+        	raise Exception("ERROR: data and distance class arrays are not equal length")
+
     
     def genData(self, fbar, nSamples, sigma, density):
         totalSize = self.ndc*nSamples
@@ -296,7 +358,7 @@ class fullCML(CML):
             if d==0:
                 p = self.g0/denom
             else:
-                p = sy.nsum(lambda t: exp(self.mu2*t)*exp(-d/(4.0*ss*t))/(2.0*t), [1,sy.inf],error=False,verbose=False,method='euler-maclaurin',steps=[100])
+                p = sy.nsum(lambda t: exp(self.mu2*t)*exp(-d/(4.0*ss*t))/(2.0*t), [1,sy.inf],error=False,verbose=False,method='euler-maclaurin',steps=[1000])
                 p = p/denom
             phi_bar += p*nSamples
             phi[i] = p
@@ -310,3 +372,21 @@ class fullCML(CML):
         counts = np.random.binomial(nSamples,pIBD)
         return counts
 
+    def landscape(self,res=0.1,sig_lower=0.1,sig_upper=4.0,den_lower=0.1,den_upper=6.0,file_name=None):
+    	#run after maxLike
+    	sig = np.arange(sig_lower,sig_upper,res)
+    	den = np.arange(den_lower,den_upper,res)
+    	X,Y = np.meshgrid(sig,den)
+    	Z = np.array([[-log(self.update(np.array([i,j]))) for i in sig] for j in den])
+    	plt.rcParams['xtick.direction'] = 'out'
+    	plt.rcParams['ytick.direction'] = 'out'
+    	plt.figure(figsize=(10,10))
+    	CS = plt.contour(X,Y,Z)
+    	plt.clabel(CS, inline=1, fontsize=10)
+    	plt.title('Likelihood Landscape of $\sigma$ vs Density')
+    	plt.xlabel('$\sigma$')
+    	plt.ylabel('density')
+    	plt.plot(self.ml[0],self.ml[1],"*k",markersize=20)
+    	plt.show()
+    	if file_name != None:
+    		plt.savefig(file_name,format='pdf')

@@ -14,9 +14,19 @@ print acml.data
 print acml.dist
 print acml.sz
 ml = acml.maxLike(sigma,density)
+acml.landscape(res=0.5,file_name="test.pdf")
 print(acml.get_nb())
 print(ml)
 print 2*1*pi*sigma*sigma*density
 
-boot = acml.bootstrap_CI(5,0.05,sigma,density,verbose=True)
-print boot
+kkk = (5.0,2e-17)
+print "K"
+print acml.update(kkk)
+#print acml.get_nb()
+print "Reset"
+print acml.update((1.0,1.0))
+#print acml.get_nb()
+#print "BOOT"
+#boot = acml.bootstrap_CI(5,0.05,sigma,density,verbose=True)
+#print boot
+
