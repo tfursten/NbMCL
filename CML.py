@@ -188,7 +188,6 @@ class CML:
                 stat, samples, dClass, sz, sigma, density, verbose)
             # Redo those that failed to converge
         stat.sort()
-        print "ml", self.ml
         # return data to original values
         self.data = org_data
         self.dist = org_dc

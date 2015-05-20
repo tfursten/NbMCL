@@ -56,4 +56,5 @@ out = str("sigma: {}\ndensity: {}\nmu: {}\nfhat: {}\nploidy: {}\n"
                                                          alpha, ndc, nSamples,
                                                          cProbReps, bootReps,
                                                          expNb, p)
+f.write(out)
 f.close()
