@@ -85,7 +85,7 @@ class CML:
             phi_bar += p * self.sz[s]
             phi[s] = p
         for l in xrange(self.split, self.ndc):
-            p = self.bessel(self.dist[l]) / denom
+            p = self.bessel(self.dist[l]) / float(denom)
             phi_bar += p * self.sz[l]
             phi[l] = p
         phi_bar /= self.tsz
@@ -94,10 +94,13 @@ class CML:
             r = (phi[i] - phi_bar) / (1.0 - phi_bar)
             pIBD = self.fhat + (1 - self.fhat) * r
             if pIBD <= 0:
-                print "WARNING: Prabability of IBD has fallen \
-                       below zero for distance class", self.dist[i], "."
-                print "This marginal likelihood will not be \
-                       included in composite likelihood."
+                print pIBD, self.s, self.de
+                print("WARNING: Prabability of IBD has fallen "
+                      "below zero for distance class {}.").format(self.dist[i])
+                print("This marginal likelihood will not be "
+                      "included in composite likelihood.")
+                # print "phi[i]", phi[i], "phi_bar", phi_bar, \
+                #"r", r, "pIBD", pIBD
                 continue
             cml += self.data[i] * log(pIBD) + \
                 (self.sz[i] - self.data[i]) * log(1 - pIBD)
@@ -124,10 +127,10 @@ class CML:
             r = (phi[i] - phi_bar) / (1.0 - phi_bar)
             pIBD = self.fhat + (1 - self.fhat) * r
             if pIBD <= 0:
-                print "WARNING: Prabability of IBD has fallen \
-                       below zero for distance class", self.dist[i], "."
-                print "This marginal likelihood will not be \
-                       included in composite likelihood."
+                print("WARNING: Prabability of IBD has fallen "
+                      "below zero for distance class {}.").format(self.dist[i])
+                print("This marginal likelihood will not be "
+                      "included in composite likelihood.")
                 continue
             cml += self.data[i] * log(pIBD) + \
                 (self.sz[i] - self.data[i]) * log(1 - pIBD)
@@ -156,6 +159,7 @@ class CML:
             self.sz = s
             x = self.max_likelihood(sigma, density)
             if x.success is False:
+                print "BOOTFAIL"
                 fail += 1
                 continue
             stat[np.where(stat == 0)[0][0]] = self.get_nb()
@@ -166,30 +170,29 @@ class CML:
         org_data = self.data
         org_dc = self.dist
         org_sz = self.sz
-        self.max_likelihood(sigma, density, verbose=verbose)
+        ml = self.max_likelihood(sigma, density, verbose=verbose)
+        if not ml.success:
+            return False
         org_nb = self.get_nb()
-        # make indexes for sampling with replacement
-        # carry over the distance classes as well
         n = len(self.data)
-        idx = np.random.randint(0, n, (nSamples, n))
-        samples = org_data[idx]
-        dClass = org_dc[idx]
-        sz = org_sz[idx]
         stat = np.zeros(nSamples)
-        stat, fail = self.bootstrap_helper(
-            stat, samples, dClass, sz, sigma, density, verbose)
-        # Redo those that failed to converge
-        while fail > 0:
-            idx = np.random.randint(0, n, (fail, n))
+        go = nSamples
+        while go:
+            # make indexes for sampling with replacement
+            # carry over the distance classes as well
+            idx = np.random.randint(0, n, (go, n))
             samples = org_data[idx]
             dClass = org_dc[idx]
             sz = org_sz[idx]
-            stat, fail = self.bootstrap_helper(
+            stat, go = self.bootstrap_helper(
                 stat, samples, dClass, sz, sigma, density, verbose)
+            # Redo those that failed to converge
         stat.sort()
+        print "ml", self.ml
         # return data to original values
         self.data = org_data
         self.dist = org_dc
+        self.ml = ml.x
         return [stat[int((alpha / 2.0) * nSamples)],
                 org_nb, stat[int((1 - alpha / 2.0) * nSamples)], stat]
 
@@ -217,7 +220,8 @@ class CML:
     def max_likelihood(self, startSig, startDen, max_iter=10000,
                        tol=0.00001, verbose=False):
         start = np.array([startSig, startDen])
-        bnds = ((2 ** (-52), None), (2 ** (-52), None))
+        # minimum density is 0.1, otherwise we get probabilities less than 0
+        bnds = ((2 ** (-52), None), (0.1, None))
         x = minimize(self.update, start, options={
                      'maxiter': max_iter, 'disp': verbose},
                      tol=tol, bounds=bnds, method='TNC')
@@ -250,7 +254,7 @@ class CML:
             phi_bar += p * nSamples
             phi[s] = p
         for l in xrange(split, self.ndc):
-            p = self.bessel(self.dist[l]) / denom
+            p = self.bessel(self.dist[l]) / float(denom)
             phi_bar += p * nSamples
             phi[l] = p
         phi_bar /= float(totalSize)
