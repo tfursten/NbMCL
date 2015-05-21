@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from math import *
 import numpy as np
 from CML import *
