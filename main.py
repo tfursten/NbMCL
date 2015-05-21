@@ -16,45 +16,56 @@ dc = np.array([i + 1 for i in xrange(ndc)])
 sz = np.array([nSamples for i in xrange(ndc)])
 acml = ApxCML(mu, sigma, density, data, dc, sz, ploidy, 30)
 cProbReps = 1  # number of replicates for coverage probability
-bootReps = 1000
+bootReps = 10
 go = cProbReps
-rawBootData = np.zeros((cProbReps, bootReps))
-summaryBootData = np.zeros((cProbReps, 3))
+count = 0  # count number of times CI includes true value
 expNb = 2 * ploidy * pi * sigma ** 2 * density
-iii = 0
+
+# data files
+file("rawBootData.txt", 'w').close()
+file("summaryBootData.txt", 'w').close()
+rawOut = file("rawBootData.txt", 'a')
+sumOut = file("summaryBootData.txt", 'a')
+dataOut = file("generatedData.txt", 'w')
+cprobOut = file("covProb.txt", 'w')
 # Simulate a number of data sets and estimate Nb using ML
-# and confidence intervals using bootstrap
-while go:
-    # step 1: Generate Data Set
-    data = acml.gen_data(fhat, nSamples, sigma, density)
-    acml.set_data(data, dc, 100)
-    # Calculate Nb and CI estimates
+dataReps = acml.gen_data(fhat, nSamples, sigma, density, cProbReps)
+print dataReps
+for i, r in enumerate(dataReps):
+    print i
+    # set data
+    acml.set_data(r, dc, 100)
+    # estimate nb size and bootstrap CI, returns false if fails to converge
     boot = acml.bootstrap_CI(bootReps, alpha, sigma, density)
-    if not boot:
-        print "FAIL"
-        continue
-    rawBootData[iii] = np.array(boot[3])  # add list of raw bootstap values
-    summaryBootData[iii] = np.array(boot[0:3])
-    iii += 1
-    go += -1
-
-# write data to file
-np.savetxt("rawBootData.txt", rawBootData, delimiter=",")
-np.savetxt("BootDataSummary.txt", summaryBootData, delimiter=",")
-
-# Calculate Proportion of replicates that contain the real Nb size
-count = 0
-for rep in summaryBootData:
-    if rep[0] <= expNb and expNb <= rep[2]:
+    while not boot:
+        print "Main: FAIL BOOTSTRAP on Prob rep:", i
+        # repeat if bootstrap fails
+        x = acml.gen_data(fhat, nSamples, sigma, density, 1)
+        dataReps[i] = x
+        acml.set_data(x[0], dc, 100)
+        boot = acml.bootstrap_CI(bootReps, alpha, sigma, density)
+    rawBootData = np.array(boot[3])
+    summaryBootData = np.array(boot[0:3])
+    print summaryBootData
+    # check in CI includes real Nb size
+    if summaryBootData[0] <= expNb and expNb <= summaryBootData[2]:
         count += 1
-p = count / float(cProbReps)
-f = open("covProb.txt", 'w')
+    # append to file
+    np.savetxt(rawOut, rawBootData, delimiter=',', newline=" ", fmt='%.4f')
+    np.savetxt(sumOut, summaryBootData, delimiter=',', newline=" ", fmt='%.4f')
+    print i, "done"
+# calculate proportion of reps contain real value
+prob = count / float(cProbReps)
 out = str("sigma: {}\ndensity: {}\nmu: {}\nfhat: {}\nploidy: {}\n"
-          "alpha: {}\n nDC: {}\nnSamples: {}\ncovProbReps: {}\n"
-          "bootReps: {}\nexpNb: {}\nCovProb: {}").format(sigma, density,
-                                                         mu, fhat, ploidy,
-                                                         alpha, ndc, nSamples,
-                                                         cProbReps, bootReps,
-                                                         expNb, p)
-f.write(out)
-f.close()
+          "alpha: {}\nnDC: {}\nnSamples: {}\ncovProbReps: {}\n"
+          "bootReps: {}\nexpNb: {}\n"
+          "CovProb: {}").format(sigma, density, mu, fhat, ploidy,
+                                alpha, ndc, nSamples, cProbReps,
+                                bootReps, expNb, prob)
+cprobOut.write(out)
+
+np.savetxt(dataOut, dataReps, delimiter=',', fmt='%02d')
+rawOut.close()
+sumOut.close()
+dataOut.close()
+cprobOut.close()

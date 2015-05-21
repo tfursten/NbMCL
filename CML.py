@@ -234,7 +234,7 @@ class CML:
         self.dist = np.array([i for i, j, k in z], dtype=float)
         self.sz = np.array([k for i, j, k in z], dtype=int)
 
-    def apx_gen_data(self, fbar, nSamples, sigma, density):
+    def apx_gen_data(self, fbar, nSamples, sigma, density, nreps):
         totalSize = self.ndc * nSamples
         ss = sigma * sigma
         split = self.ndc
@@ -262,7 +262,7 @@ class CML:
         pIBD = np.array(pIBD, dtype=float)
         # simulate values from binomial distribution
         # np.random.seed(1209840)
-        counts = np.random.binomial(nSamples, pIBD)
+        counts = np.random.binomial(nSamples, pIBD, (nreps, self.ndc))
         return counts
 
     def full_gen_data(self, fbar, nSamples, sigma, density):
