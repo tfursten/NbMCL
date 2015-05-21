@@ -344,10 +344,7 @@ class ApxCML(CML):
 
     def bessel(self, x):
         t = (x / float(self.s)) * self.sqrz
-        if(t < 650):
-            return sp.k0(t)
-        else:
-            return 0
+        return sp.k0(t)
 
 
 class FullCML(CML):
