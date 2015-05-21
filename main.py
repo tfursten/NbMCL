@@ -1,10 +1,13 @@
 #!/usr/bin/env python
+import sys
 from math import *
-import timeit
+import time
 import numpy as np
 from CML import *
 
-start = timeit.timeit()
+
+fn = "{:0>4d}".format(int(sys.argv[1]))
+start = time.time()
 data = np.zeros(50)
 sigma = 1.0
 density = 1.0
@@ -17,19 +20,19 @@ nSamples = 100
 dc = np.array([i + 1 for i in xrange(ndc)])
 sz = np.array([nSamples for i in xrange(ndc)])
 acml = ApxCML(mu, sigma, density, data, dc, sz, ploidy, 30)
-cProbReps = 2  # number of replicates for coverage probability
-bootReps = 10
+cProbReps = 10  # number of replicates for coverage probability
+bootReps = 1000
 go = cProbReps
 count = 0  # count number of times CI includes true value
 expNb = 2 * ploidy * pi * sigma ** 2 * density
 
 # data files
-file("rawBootData.txt", 'w').close()
-file("summaryBootData.txt", 'w').close()
-rawOut = file("rawBootData.txt", 'a')
-sumOut = file("summaryBootData.txt", 'a')
-dataOut = file("generatedData.txt", 'w')
-cprobOut = file("covProb.txt", 'w')
+file("rawBootData" + fn + ".txt", 'w').close()
+file("summaryBootData" + fn + ".txt", 'w').close()
+rawOut = file("rawBootData" + fn + ".txt", 'a')
+sumOut = file("summaryBootData" + fn + ".txt", 'a')
+dataOut = file("generatedData" + fn + ".txt", 'w')
+cprobOut = file("covProb" + fn + ".txt", 'w')
 # Simulate a number of data sets and estimate Nb using ML
 dataReps = acml.gen_data(fhat, nSamples, sigma, density, cProbReps)
 for i, r in enumerate(dataReps):
@@ -77,5 +80,5 @@ rawOut.close()
 sumOut.close()
 dataOut.close()
 cprobOut.close()
-end = timeit.timeit()
+end = time.time()
 print end - start
