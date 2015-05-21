@@ -31,9 +31,7 @@ dataOut = file("generatedData.txt", 'w')
 cprobOut = file("covProb.txt", 'w')
 # Simulate a number of data sets and estimate Nb using ML
 dataReps = acml.gen_data(fhat, nSamples, sigma, density, cProbReps)
-print dataReps
 for i, r in enumerate(dataReps):
-    print i
     # set data
     acml.set_data(r, dc, 100)
     # estimate nb size and bootstrap CI, returns false if fails to converge
@@ -47,14 +45,13 @@ for i, r in enumerate(dataReps):
         boot = acml.bootstrap_CI(bootReps, alpha, sigma, density)
     rawBootData = np.array(boot[3])
     summaryBootData = np.array(boot[0:3])
-    print summaryBootData
     # check in CI includes real Nb size
     if summaryBootData[0] <= expNb and expNb <= summaryBootData[2]:
         count += 1
     # append to file
     np.savetxt(rawOut, rawBootData, delimiter=',', newline=" ", fmt='%.4f')
     np.savetxt(sumOut, summaryBootData, delimiter=',', newline=" ", fmt='%.4f')
-    print i, "done"
+
 # calculate proportion of reps contain real value
 prob = count / float(cProbReps)
 out = str("sigma: {}\ndensity: {}\nmu: {}\nfhat: {}\nploidy: {}\n"
