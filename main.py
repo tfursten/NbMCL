@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 from math import *
+import timeit
 import numpy as np
 from CML import *
 
-
+start = timeit.timeit()
 data = np.zeros(50)
 sigma = 1.0
 density = 1.0
@@ -16,7 +17,7 @@ nSamples = 100
 dc = np.array([i + 1 for i in xrange(ndc)])
 sz = np.array([nSamples for i in xrange(ndc)])
 acml = ApxCML(mu, sigma, density, data, dc, sz, ploidy, 30)
-cProbReps = 1  # number of replicates for coverage probability
+cProbReps = 2  # number of replicates for coverage probability
 bootReps = 10
 go = cProbReps
 count = 0  # count number of times CI includes true value
@@ -37,7 +38,7 @@ for i, r in enumerate(dataReps):
     # estimate nb size and bootstrap CI, returns false if fails to converge
     boot = acml.bootstrap_CI(bootReps, alpha, sigma, density)
     while not boot:
-        print "Main: FAIL BOOTSTRAP on Prob rep:", i
+        print "Main: FAIL BOOTSTRAP on rep:", i
         # repeat if bootstrap fails
         x = acml.gen_data(fhat, nSamples, sigma, density, 1)
         dataReps[i] = x
@@ -49,8 +50,17 @@ for i, r in enumerate(dataReps):
     if summaryBootData[0] <= expNb and expNb <= summaryBootData[2]:
         count += 1
     # append to file
-    np.savetxt(rawOut, rawBootData, delimiter=',', newline=" ", fmt='%.4f')
-    np.savetxt(sumOut, summaryBootData, delimiter=',', newline=" ", fmt='%.4f')
+    for v in rawBootData:
+        s = str("{:d},{:.4f}\n".format(i, v))
+        rawOut.write(s)
+    s = str("{:d},{:.4f},{:.4f},{:.4f}\n").format(i,
+                                                  summaryBootData[0],
+                                                  summaryBootData[1],
+                                                  summaryBootData[2])
+    sumOut.write(s)
+    #np.savetxt(rawOut, rawBootData, delimiter=',', newline="\n", fmt='%.4f')
+    # np.savetxt(
+    # sumOut, summaryBootData, delimiter=',', newline="\n", fmt='%.4f')
 
 # calculate proportion of reps contain real value
 prob = count / float(cProbReps)
@@ -67,3 +77,5 @@ rawOut.close()
 sumOut.close()
 dataOut.close()
 cprobOut.close()
+end = timeit.timeit()
+print end - start
