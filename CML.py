@@ -158,9 +158,6 @@ class CML:
     def jackknife_CI(self, rawData, alpha, sigma, density, verbose=False):
         org_data, org_sz = self.raw_to_dc(rawData)
         org_dc = np.array([i + 1 for i in xrange(len(org_data))])
-        print org_data, org_sz, org_dc
-        print len(rawData), len(org_data), len(org_sz), len(org_dc)
-        print rawData
         self.set_data(org_data, org_dc, org_sz)
         ml = self.max_likelihood(sigma, density, verbose=verbose)
         if not ml.success:
@@ -172,7 +169,6 @@ class CML:
             jackData = rawData.copy()
             jackData[i] = np.nan
             jackData, sz = self.raw_to_dc(jackData)
-            print jackData, sz
             self.set_data(jackData, org_dc, sz)
             x = self.max_likelihood(sigma, density)
             if x.success is False:
