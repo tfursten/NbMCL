@@ -93,16 +93,17 @@ class CML:
         for i in xrange(self.ndc):
             r = (phi[i] - phi_bar) / (1.0 - phi_bar)
             pIBD = self.fhat + (1 - self.fhat) * r
+            # print i,pIBD
             if pIBD <= 0:
                 print pIBD, self.s, self.de
                 print("WARNING: Prabability of IBD has fallen "
                       "below zero for distance class {}.").format(self.dist[i])
                 print("This marginal likelihood will not be "
                       "included in composite likelihood.")
-                # print "phi[i]", phi[i], "phi_bar", phi_bar, \
-                #"r", r, "pIBD", pIBD
+                print("phi[i]", phi[i], "phi_bar", phi_bar,
+                      "r", r, "pIBD", pIBD)
                 continue
-            cml += self.data[i] * log(pIBD) + \
+            cml += self.data[i] * log(pIBD) +\
                 (self.sz[i] - self.data[i]) * log(1 - pIBD)
         return cml
 
@@ -132,9 +133,62 @@ class CML:
                 print("This marginal likelihood will not be "
                       "included in composite likelihood.")
                 continue
-            cml += self.data[i] * log(pIBD) + \
+            cml += self.data[i] * log(pIBD) +\
                 (self.sz[i] - self.data[i]) * log(1 - pIBD)
         return cml
+
+    def raw_to_dc(self, rawData):
+        n = len(rawData)
+        ibd = np.zeros(n / 2)
+        sz = np.zeros(n / 2)
+        for i in xrange(n):
+            if np.isnan(rawData[i]):
+                continue
+            for j in xrange(i + 1, n):
+                if np.isnan(rawData[j]):
+                    continue
+                k = abs(j - i)
+                if k > (n / 2):
+                    k = n - k
+                if rawData[i] == rawData[j]:
+                    ibd[k - 1] += 1
+                sz[k - 1] += 1
+        return ibd, sz
+
+    def jackknife_CI(self, rawData, alpha, sigma, density, verbose=False):
+        org_data, org_sz = self.raw_to_dc(rawData)
+        org_dc = np.array([i + 1 for i in xrange(len(org_data))])
+        print org_data, org_sz, org_dc
+        print len(rawData), len(org_data), len(org_sz), len(org_dc)
+        print rawData
+        self.set_data(org_data, org_dc, org_sz)
+        ml = self.max_likelihood(sigma, density, verbose=verbose)
+        if not ml.success:
+            return False
+        org_nb = self.get_nb()
+        n = len(self.data)
+        stat = np.zeros(n)
+        for i in xrange(n):
+            jackData = rawData.copy()
+            jackData[i] = np.nan
+            jackData, sz = self.raw_to_dc(jackData)
+            print jackData, sz
+            self.set_data(jackData, org_dc, sz)
+            x = self.max_likelihood(sigma, density)
+            if x.success is False:
+                print "JACKKNIIFE FAIL"
+                stat[i] = np.nan
+                continue
+            stat[i] = self.get_nb()
+        stat = stat[~np.isnan(stat)]
+        stat.sort()
+        n = len(stat)
+        self.data = org_data
+        self.dist = org_dc
+        self.ml = ml.x
+        self.sz = org_sz
+        return [stat[int((alpha / 2.0) * n)],
+                org_nb, stat[int((1 - alpha / 2.0) * n)], stat]
 
     def apx_bootstrap_helper(self, stat, samples, dClass,
                              sz, sigma, density, verbose):
@@ -222,8 +276,8 @@ class CML:
         # minimum density is 0.1, otherwise we get probabilities less than 0
         bnds = ((2 ** (-52), None), (0.1, None))
         x = minimize(self.update, start, options={
-                     'maxiter': max_iter, 'disp': verbose},
-                     tol=tol, bounds=bnds, method='TNC')
+            'maxiter': max_iter, 'disp': verbose},
+            tol=tol, bounds=bnds, method='TNC')
         self.ml = x.x
         return x
 
@@ -334,7 +388,7 @@ class ApxCML(CML):
             for i in xrange(dt):
                 powX *= x
                 powS *= self.s
-            s = (self.plog[t] * powX) / \
+            s = (self.plog[t] * powX) /\
                 (fac.factorial2(dt, exact=True) * pow2 * powS)
             if((t % 2) == 0):
                 sum += s
