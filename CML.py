@@ -95,13 +95,13 @@ class CML:
             pIBD = self.fhat + (1 - self.fhat) * r
             # print i,pIBD
             if pIBD <= 0:
-                print pIBD, self.s, self.de
+                #print pIBD, self.s, self.de
                 print("WARNING: Prabability of IBD has fallen "
                       "below zero for distance class {}.").format(self.dist[i])
                 print("This marginal likelihood will not be "
                       "included in composite likelihood.")
-                print("phi[i]", phi[i], "phi_bar", phi_bar,
-                      "r", r, "pIBD", pIBD)
+                #print("phi[i]", phi[i], "phi_bar", phi_bar,
+                      #"r", r, "pIBD", pIBD)
                 continue
             cml += self.data[i] * log(pIBD) +\
                 (self.sz[i] - self.data[i]) * log(1 - pIBD)
@@ -150,7 +150,7 @@ class CML:
                 k = abs(j - i)
                 if k > (n / 2):
                     k = n - k
-                if rawData[i] == rawData[j]:
+                if int(rawData[i]) == int(rawData[j]):
                     ibd[k - 1] += 1
                 sz[k - 1] += 1
         return ibd, sz
@@ -159,6 +159,8 @@ class CML:
         org_data, org_sz = self.raw_to_dc(rawData)
         org_dc = np.array([i + 1 for i in xrange(len(org_data))])
         self.set_data(org_data, org_dc, org_sz)
+        if self.fhat < 0.27 or self.hat > 0.33:
+            return False
         ml = self.max_likelihood(sigma, density, verbose=verbose)
         if not ml.success:
             return False
@@ -267,7 +269,7 @@ class CML:
             plt.savefig(fileName, format='pdf')
 
     def max_likelihood(self, startSig, startDen, max_iter=10000,
-                       tol=0.00001, verbose=False):
+                       tol=0.0001, verbose=False):
         start = np.array([startSig, startDen])
         # minimum density is 0.1, otherwise we get probabilities less than 0
         bnds = ((2 ** (-52), None), (0.1, None))

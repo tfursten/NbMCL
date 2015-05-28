@@ -18,7 +18,7 @@ alpha = 0.05
 ndc = 51
 nSamples = 100
 data = np.zeros(ndc)
-dc = np.array([i+1 for i in xrange(ndc)])
+dc = np.array([i + 1 for i in xrange(ndc)])
 sz = np.array([nSamples for i in xrange(ndc)])
 acml = ApxCML(mu, sigma, density, data, dc, sz, ploidy, 30)
 infn = str(sys.argv[2])  # infile name
@@ -33,10 +33,13 @@ sumOut = file("summaryJackData" + fn + ".txt", 'a')
 cprobOut = file("covProbJack" + fn + ".txt", 'w')
 
 dataReps = np.array(np.genfromtxt(infn, delimiter=",", dtype=float))
-cProbReps = len(dataReps)
+cProbReps = 0
 for i, row in enumerate(dataReps):
     # estimate nb size and jackknife CI
     jack = acml.jackknife_CI(row, alpha, sigma, density)
+    if jack is False:
+        continue
+    cProbReps += 1
     rawJackData = np.array(jack[3])
     summaryJackData = np.array(jack[0:3])
     # check in CI includes real Nb size
