@@ -159,7 +159,7 @@ class CML:
         org_data, org_sz = self.raw_to_dc(rawData)
         org_dc = np.array([i + 1 for i in xrange(len(org_data))])
         self.set_data(org_data, org_dc, org_sz)
-        if self.fhat < 0.27 or self.hat > 0.33:
+        if self.fhat < 0.27 or self.fhat > 0.33:
             return False
         ml = self.max_likelihood(sigma, density, verbose=verbose)
         if not ml.success:
