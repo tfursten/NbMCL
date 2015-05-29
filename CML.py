@@ -165,7 +165,7 @@ class CML:
         if not ml.success:
             return False
         org_nb = self.get_nb()
-        n = len(self.data)
+        n = len(rawData)
         stat = np.zeros(n)
         for i in xrange(n):
             jackData = rawData.copy()
