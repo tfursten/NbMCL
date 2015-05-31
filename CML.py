@@ -227,6 +227,7 @@ class CML:
             return False
         org_nb = self.get_nb()
         sd = self.ml
+        fbar = self.fhat
         n = len(self.data)
         stat = np.zeros(nSamples)
         go = nSamples
@@ -246,7 +247,7 @@ class CML:
         self.ml = ml.x
         return [stat[int((alpha / 2.0) * nSamples)],
                 org_nb, stat[int((1 - alpha / 2.0) * nSamples)],
-                sd[0], sd[1], stat]
+                sd[0], sd[1], fbar, stat]
 
     def landscape_plot(self, res=0.1, sigLow=0.1, sigUp=4.0,
                        denLow=0.1, denUp=6.0, fileName=None):

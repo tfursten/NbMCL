@@ -45,8 +45,8 @@ for i, r in enumerate(dataReps):
         "BOOTSTRAP FAIL ON LINE:", i
         continue
     cProbReps += 1
-    rawBootData = np.array(boot[5])
-    summaryBootData = np.array(boot[0:5])
+    rawBootData = np.array(boot[6])
+    summaryBootData = np.array(boot[0:6])
     # check in CI includes real Nb size
     if summaryBootData[0] <= expNb and expNb <= summaryBootData[2]:
         count += 1
@@ -55,12 +55,13 @@ for i, r in enumerate(dataReps):
         s = str("{:d},{:.4f}\n".format(i, v))
         rawOut.write(s)
     s = str("{:d},{:.4f},{:.4f},"
-            "{:.4f},{:.4f},{:.4f}\n").format(i,
-                                             summaryBootData[0],
-                                             summaryBootData[1],
-                                             summaryBootData[2],
-                                             summaryBootData[3],
-                                             summaryBootData[4])
+            "{:.4f},{:.4f},{:.4f},{:.4f}\n").format(i,
+                                                    summaryBootData[0],
+                                                    summaryBootData[1],
+                                                    summaryBootData[2],
+                                                    summaryBootData[3],
+                                                    summaryBootData[4],
+                                                    summaryBootData[5])
     sumOut.write(s)
     #np.savetxt(rawOut, rawBootData, delimiter=',', newline="\n", fmt='%.4f')
     # np.savetxt(
