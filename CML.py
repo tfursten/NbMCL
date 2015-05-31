@@ -23,7 +23,7 @@ class CML:
         self.de = density
         self.z = exp(self.mu2)
         self.sqrz = sqrt(1 - self.z)
-        self.g0 = log(1 / self.sqrz)
+        self.g0 = log(1 / float(self.sqrz))
 
         # Calling set_data method will initialize these values
         self.ndc = 0
@@ -75,17 +75,17 @@ class CML:
     def apx_likelihood(self):
         phi = np.zeros((self.ndc))
         phi_bar = 0
-        denom = 2 * self.k * self.ss * pi * self.de + self.g0
+        denom = float(2 * self.k * self.ss * pi * self.de + self.g0)
         p = 0
         for s in xrange(self.split):
             if self.dist[s] == 0:
-                p = self.g0 / float(denom)
+                p = self.g0 / denom
             else:
-                p = self.t_series(self.dist[s]) / float(denom)
+                p = self.t_series(self.dist[s]) / denom
             phi_bar += p * self.sz[s]
             phi[s] = p
         for l in xrange(self.split, self.ndc):
-            p = self.bessel(self.dist[l]) / float(denom)
+            p = self.bessel(self.dist[l]) / denom
             phi_bar += p * self.sz[l]
             phi[l] = p
         phi_bar /= self.tsz
@@ -238,7 +238,6 @@ class CML:
             sz = org_sz[idx]
             stat, go = self.bootstrap_helper(
                 stat, samples, dClass, sz, sigma, density, verbose)
-            # Redo those that failed to converge
         stat.sort()
         # return data to original values
         self.data = org_data
