@@ -10,13 +10,15 @@ fn = "{:0>4d}".format(int(sys.argv[1]))
 start = time.time()
 sigma = 1.0
 density = 1.0
+fhat = 0.3
 mu = 0.0001
 ploidy = 1.0
 alpha = 0.05
 ndc = 50
+data = np.zeros(ndc)
 dc = np.array([i + 1 for i in xrange(ndc)])
 sz = np.array([100 for i in xrange(ndc - 1)])
-sz.append(50)
+sz = np.append(sz, 50)
 acml = ApxCML(mu, sigma, density, data, dc, sz, ploidy, 30)
 infn = str(sys.argv[2])
 bootReps = int(sys.argv[3])
@@ -35,7 +37,7 @@ for i, r in enumerate(dataReps):
     # set data
     d, sz = acml.raw_to_dc(r)
     acml.set_data(d, dc, sz)
-    if acml.fhat < 0.27 or self.fhat > 0.33:
+    if acml.fhat < 0.27 or acml.fhat > 0.33:
         continue
     # estimate nb size and bootstrap CI, returns false if fails to converge
     boot = acml.bootstrap_CI(bootReps, alpha, sigma, density)
@@ -62,12 +64,12 @@ for i, r in enumerate(dataReps):
     # sumOut, summaryBootData, delimiter=',', newline="\n", fmt='%.4f')
 
 # calculate proportion of reps contain real value
-prob = count / float(cProbReps)
+prob = count
 out = str("sigma: {}\ndensity: {}\nmu: {}\nfhat: {}\nploidy: {}\n"
-          "alpha: {}\nnDC: {}\nnSamples: {}\ncovProbReps: {}\n"
+          "alpha: {}\nnDC: {}\ncovProbReps: {}\n"
           "bootReps: {}\nexpNb: {}\n"
           "CovProb: {}").format(sigma, density, mu, fhat, ploidy,
-                                alpha, ndc, nSamples, cProbReps,
+                                alpha, ndc, cProbReps,
                                 bootReps, expNb, prob)
 cprobOut.write(out)
 
