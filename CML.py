@@ -95,13 +95,13 @@ class CML:
             pIBD = self.fhat + (1 - self.fhat) * r
             # print i,pIBD
             if pIBD <= 0:
-                #print pIBD, self.s, self.de
+                # print pIBD, self.s, self.de
                 print("WARNING: Prabability of IBD has fallen "
                       "below zero for distance class {}.").format(self.dist[i])
                 print("This marginal likelihood will not be "
                       "included in composite likelihood.")
-                #print("phi[i]", phi[i], "phi_bar", phi_bar,
-                      #"r", r, "pIBD", pIBD)
+                # print("phi[i]", phi[i], "phi_bar", phi_bar,
+                #"r", r, "pIBD", pIBD)
                 continue
             cml += self.data[i] * log(pIBD) +\
                 (self.sz[i] - self.data[i]) * log(1 - pIBD)
@@ -226,6 +226,7 @@ class CML:
         if not ml.success:
             return False
         org_nb = self.get_nb()
+        sd = self.ml
         n = len(self.data)
         stat = np.zeros(nSamples)
         go = nSamples
@@ -244,7 +245,8 @@ class CML:
         self.dist = org_dc
         self.ml = ml.x
         return [stat[int((alpha / 2.0) * nSamples)],
-                org_nb, stat[int((1 - alpha / 2.0) * nSamples)], stat]
+                org_nb, stat[int((1 - alpha / 2.0) * nSamples)],
+                sd[0], sd[1], stat]
 
     def landscape_plot(self, res=0.1, sigLow=0.1, sigUp=4.0,
                        denLow=0.1, denUp=6.0, fileName=None):
