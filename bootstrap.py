@@ -46,9 +46,8 @@ for i, r in enumerate(dataReps):
         dataReps[i] = x
         acml.set_data(x[0], dc, 100)
         boot = acml.bootstrap_CI(bootReps, alpha, sigma, density)
-    rawBootData = np.array(boot[3])
-    summaryBootData = np.array(boot[0:3])
-    print summaryBootData
+    rawBootData = np.array(boot[6])
+    summaryBootData = np.array(boot[0:6])
     # check in CI includes real Nb size
     if summaryBootData[0] <= expNb and expNb <= summaryBootData[2]:
         count += 1
@@ -56,10 +55,14 @@ for i, r in enumerate(dataReps):
     for v in rawBootData:
         s = str("{:d},{:.4f}\n".format(i, v))
         rawOut.write(s)
-    s = str("{:d},{:.4f},{:.4f},{:.4f}\n").format(i,
-                                                  summaryBootData[0],
-                                                  summaryBootData[1],
-                                                  summaryBootData[2])
+    s = str("{:d},{:.4f},{:.4f},"
+            "{:.4f},{:.4f},{:.4f},{:.4f}\n").format(i,
+                                                    summaryBootData[0],
+                                                    summaryBootData[1],
+                                                    summaryBootData[2],
+                                                    summaryBootData[3],
+                                                    summaryBootData[4],
+                                                    summaryBootData[5])
     sumOut.write(s)
     #np.savetxt(rawOut, rawBootData, delimiter=',', newline="\n", fmt='%.4f')
     # np.savetxt(

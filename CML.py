@@ -289,7 +289,15 @@ class CML:
         self.sz = np.array([k for i, j, k in z], dtype=int)
 
     def apx_gen_data(self, fbar, nSamples, sigma, density, nreps):
-        totalSize = self.ndc * nSamples
+        if type(nSamples) == int:
+            totalSize = self.ndc * nSamples
+        else:
+            if len(nSamples) == self.ndc:
+                totalSize = np.sum(nSamples)
+            else:
+                raise Exception(
+                    "ERROR: data and distance class"
+                    "arrays are not equal length")
         ss = sigma * sigma
         split = self.ndc
         for i in xrange(self.ndc):
